@@ -306,3 +306,9 @@ input { font: inherit; }
 .fb-slot.overlay { position: absolute; left: 8px; right: 8px; bottom: 8px; z-index: 3; }
 .fb-slot.overlay .feedback { margin: 0; }
 .map-area .map-controls { top: 10px; bottom: auto; }
+
+.dialog-backdrop { position: fixed; inset: 0; background: rgba(10, 6, 30, .55); display: grid; place-items: center; padding: 16px; z-index: 60; animation: pop .15s; }
+.dialog { background: var(--card); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 360px; box-shadow: var(--shadow); }
+.dialog p { margin: 0 0 16px; font-size: 18px; font-weight: 700; }
+.dialog-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.primary-btn.danger { background: var(--bad); box-shadow: none; font-size: 16px; padding: 14px; }

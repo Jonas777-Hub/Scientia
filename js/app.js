@@ -320,6 +320,20 @@
     clearTimeout(toast._t);
     toast._t = setTimeout(() => t.classList.remove("show"), ms);
   }
+  // Eigene Bestätigung (System-Dialoge sind in manchen Umgebungen gesperrt).
+  function askConfirm(text, okLabel, onOk) {
+    document.querySelector(".dialog-backdrop")?.remove();
+    const d = document.createElement("div");
+    d.className = "dialog-backdrop";
+    d.innerHTML = `<div class="dialog" role="dialog" aria-modal="true"><p>${esc(text)}</p>
+      <div class="dialog-btns"><button class="secondary-btn" data-a="no">Zurück</button><button class="primary-btn danger" data-a="yes">${esc(okLabel)}</button></div></div>`;
+    d.addEventListener("click", (e) => {
+      const a = e.target.closest("[data-a]")?.dataset.a;
+      if (e.target === d || a === "no") d.remove();
+      if (a === "yes") { d.remove(); onOk(); }
+    });
+    document.body.appendChild(d);
+  }
   function on(sel, ev, fn) { app.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn)); }
   const topbar = (title, back = "home") => `<div class="topbar"><button class="icon-btn" data-back="${back}" aria-label="Zurück">←</button><h2>${esc(title)}</h2></div>`;
   function bindBack(handlers = {}) {
@@ -541,7 +555,7 @@
           <div class="progress"><div style="width:${(st.i / questions.length) * 100}%"></div></div>
           <div class="score-pill">⭐ ${st.score}${st.streak >= 3 ? ` · 🔥${st.streak}` : ""}</div></div>
         <div class="qhost game"></div></div>`);
-      on("#quit", "click", () => { if (confirm("Runde beenden?")) practice(); });
+      on("#quit", "click", () => askConfirm("Runde beenden?", "Beenden", practice));
       renderQuestion(app.querySelector(".qhost"), q, {
         settings,
         autoNext: true,
@@ -602,6 +616,14 @@
 
   // ================= 1 gegen 1 =================
   function duel() {
+    if (window.SCIENTIA_NO_ONLINE) {
+      render(`${topbar("1 gegen 1")}
+        <div class="big-buttons"><button class="big-btn" id="local"><span class="emoji">📱</span><span><b>Am selben Handy</b><span class="sub">Abwechselnd spielen – Handy weitergeben</span></span></button></div>
+        <p class="hint">Online-Duelle gegen Freunde funktionieren in der Vorschau nicht – nur in der installierten Version der App.</p>`);
+      bindBack();
+      on("#local", "click", () => duelPickCategory("local"));
+      return;
+    }
     render(`${topbar("1 gegen 1")}
       <div class="big-buttons">
         <button class="big-btn" id="online-host"><span class="emoji">📨</span><span><b>Freund einladen</b><span class="sub">Online-Duell: Link oder Code verschicken</span></span></button>
@@ -674,7 +696,7 @@
         <p class="muted">Frage ${Math.floor(i / 2) + 1} von ${per}</p><button class="primary-btn" id="ready">Bereit!</button></div>
         <button class="secondary-btn" id="quit">Duell abbrechen</button>`);
       on("#ready", "click", play);
-      on("#quit", "click", () => { if (confirm("Duell abbrechen?")) duel(); });
+      on("#quit", "click", () => askConfirm("Duell abbrechen?", "Abbrechen", duel));
     };
     const play = () => {
       const who = i % 2;
@@ -843,7 +865,7 @@
   function copy(text) {
     (navigator.clipboard?.writeText(text) || Promise.reject()).then(
       () => toast("Link kopiert!"),
-      () => prompt("Link kopieren:", text)
+      () => toast(text, 8000)
     );
   }
 
@@ -993,11 +1015,12 @@
     drawMap();
     cleanup.push(() => map?.destroy());
     on("#reset", "click", () => {
-      if (!confirm("Wirklich den gesamten Lernfortschritt und alle XP löschen?")) return;
-      store.stats = {};
-      store.xp = 0;
-      save();
-      stats();
+      askConfirm("Wirklich den gesamten Lernfortschritt und alle XP löschen?", "Löschen", () => {
+        store.stats = {};
+        store.xp = 0;
+        save();
+        stats();
+      });
     });
   }
   function statRow(c, settings) {
