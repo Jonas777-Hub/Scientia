@@ -14,7 +14,7 @@ Unten gibt es fünf Reiter: **Start**, **Geografie**, **Geschichte**, **Wissen**
 
 **🌍 Geografie** (195 Länder, 7 Regionen: Welt, Europa, Asien, Afrika, Nord- & Mittelamerika, Südamerika, Ozeanien)
 - 🗺️ **Länder auf der Karte** – Land antippen (richtig grün, falsch rot) *oder* markiertes Land benennen.
-- 🏙️ **Hauptstädte** – *Leicht*: mit Ländername. *Schwer*: nur der Umriss. Nach der Antwort ein Foto der Stadt.
+- 🏙️ **Hauptstädte** – Vier Stufen von Leicht (mit Ländername) bis Extrem (nur Umriss, Zeitlimit). Nach der Antwort ein Foto der Stadt.
 - 🚩 **Flaggen** – Welches Land gehört zur Flagge?
 
 - 🧭 **Erdkunde-Wissen** – Kontinente, Städte, Flüsse, Berge, Inseln, Landschaften, Sprachen.
@@ -31,6 +31,10 @@ unscharf als Hintergrund erscheint.
 
 **Antworten:** Multiple Choice oder **Eintippen**. Beim Eintippen sind kleine Tippfehler, Umlaute ohne
 Punkte, Nachnamen („Adenauer“) und bekannte Varianten („USA“, „Tokyo“) erlaubt.
+
+**Schwierigkeit** – vier Stufen: **Leicht** (nur einfache Fragen), **Mittel** (alle Fragen),
+**Schwer** (nur knifflige Fragen, weniger Hilfen in den Geografie-Spielen) und **Extrem**
+(wie Schwer, dazu Zeitlimit und doppelte Punkte).
 
 **Lernsystem** – Leitner-System: Was du falsch hattest, kommt deutlich öfter dran, Sicheres seltener.
 Unter „Fortschritt“ gibt es zwei getrennte Bereiche: **Üben** (Lernstand, Weltkarte) und

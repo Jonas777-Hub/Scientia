@@ -399,3 +399,7 @@ b.inline { display: inline !important; color: inherit !important; }
 .stat-tile.good b { color: var(--good); }
 .stat-tile.bad b { color: var(--bad); }
 .stat-row .dr-vs { width: 36px; height: 36px; font-size: 15px; }
+
+/* Vier Schwierigkeitsstufen nebeneinander */
+.chips[data-chips="diff"] { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.chips[data-chips="diff"] .chip { padding: 10px 4px; font-size: 14px; text-align: center; white-space: nowrap; }

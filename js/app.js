@@ -258,53 +258,77 @@
     const items = [];
     for (const qc of cats) {
       for (const q of qc.questions) {
-        if (diff === "easy" && q[5] !== 1) continue;
+        const lv = levelOf(diff);
+        if (lv === 1 && q[5] !== 1) continue; // Leicht: nur einfache Fragen
+        if (lv >= 3 && q[5] !== 2) continue; // Schwer/Extrem: nur knifflige Fragen
         items.push({ key: `q:${qc.id}:${hash(q[0])}`, kind: "quiz", cat: qc.id, q });
       }
     }
     return items;
   }
 
+  // Schwierigkeitsstufen: 1 Leicht, 2 Mittel, 3 Schwer, 4 Extrem
+  const DIFFS = [
+    { v: "easy", l: "🙂 Leicht" },
+    { v: "medium", l: "😐 Mittel" },
+    { v: "hard", l: "🔥 Schwer" },
+    { v: "extreme", l: "💀 Extrem" },
+  ];
+  const levelOf = (diff) => ({ easy: 1, medium: 2, hard: 3, extreme: 4 })[diff] || 2;
+  const DIFF_NAME = { easy: "Leicht", medium: "Mittel", hard: "Schwer", extreme: "Extrem" };
+  // Zeitlimit beim Üben nur auf „Extrem“
+  const extremeLimit = (q) => (q.type === "mc" ? 12000 : 20000);
+
+  // sameRegion: wie viele der falschen Antworten aus derselben Region kommen sollen
   function distractors(country, field, n, sameRegion) {
     const used = new Set([country[field]]);
-    const cands = sameRegion ? shuffle(COUNTRIES.filter((c) => c !== country && c.regions.some((r) => country.regions.includes(r)))) : [];
+    const regionCount = sameRegion === true ? n : +sameRegion || 0;
+    const cands = shuffle(COUNTRIES.filter((c) => c !== country && c.regions.some((r) => country.regions.includes(r))));
     const rest = shuffle(COUNTRIES.filter((c) => c !== country));
     const out = [];
-    for (const c of cands.concat(rest)) {
+    for (const c of cands) {
+      if (out.length >= regionCount) break;
+      if (used.has(c[field])) continue;
+      used.add(c[field]);
+      out.push(c[field]);
+    }
+    for (const c of rest) {
       if (out.length >= n) break;
       if (used.has(c[field])) continue;
       used.add(c[field]);
       out.push(c[field]);
     }
-    return out;
+    return shuffle(out);
   }
 
   // Erzeugt eine fertige, serialisierbare Frage (wird bei Online-Duellen so verschickt).
   function makeQuestion(item, settings) {
-    const hard = settings.diff === "hard";
+    const lv = levelOf(settings.diff);
+    const hard = lv >= 3;
+    const levelTag = lv > 1 ? ` · ${DIFF_NAME[settings.diff]}` : "";
     const typing = settings.answer === "type";
     if (item.kind === "map") {
       const c = byIso.get(item.iso);
       if (typing) {
         return { key: item.key, type: "name", region: settings.region, target: c.topo, meta: "🗺️ Karte · Eintippen", prompt: "Wie heißt das markierte Land?", title: `Land: ${c.name}`, correct: c.name, answers: [c.name, ...(ALT[c.name] || [])], hard };
       }
-      return { key: item.key, type: "map", region: settings.region, target: c.topo, meta: hard ? "Tippe auf der Karte an · Schwer" : "Tippe auf der Karte an", prompt: c.name, title: `Karte: ${c.name}`, visual: hard ? null : { kind: "flag-small", flag: c.flag }, hard };
+      return { key: item.key, type: "map", region: settings.region, target: c.topo, meta: `Tippe auf der Karte an${levelTag}`, prompt: c.name, title: `Karte: ${c.name}`, visual: lv === 1 ? { kind: "flag-small", flag: c.flag } : null, hard };
     }
     if (item.kind === "capital") {
       const c = byIso.get(item.iso);
       return {
-        key: item.key, type: typing ? "type" : "mc", meta: hard ? "Hauptstädte · Schwer" : "Wie heißt die Hauptstadt?",
+        key: item.key, type: typing ? "type" : "mc", meta: hard ? `Hauptstädte${levelTag}` : `Wie heißt die Hauptstadt?${levelTag}`,
         prompt: hard ? "Wie heißt die Hauptstadt dieses Landes?" : c.name, title: `Hauptstadt: ${c.flag} ${c.name}`,
         visual: hard ? { kind: "outline", topo: c.topo } : { kind: "outline-small", topo: c.topo },
-        options: shuffle([c.capital, ...distractors(c, "capital", 3, hard)]), correct: c.capital,
+        options: shuffle([c.capital, ...distractors(c, "capital", 3, lv >= 2 ? 3 : 0)]), correct: c.capital,
         answers: [c.capital, ...(ALT[c.capital] || [])], reveal: hard ? `${c.flag} ${c.name}` : null, revealImg: "cap:" + c.capital, revealCaption: c.capital,
       };
     }
     if (item.kind === "flag") {
       const c = byIso.get(item.iso);
       return {
-        key: item.key, type: typing ? "type" : "mc", meta: "Flaggen", prompt: "Zu welchem Land gehört diese Flagge?", title: `Flagge ${c.flag}`,
-        visual: { kind: "flag", flag: c.flag }, options: shuffle([c.name, ...distractors(c, "name", 3, hard)]), correct: c.name,
+        key: item.key, type: typing ? "type" : "mc", meta: `Flaggen${levelTag}`, prompt: "Zu welchem Land gehört diese Flagge?", title: `Flagge ${c.flag}`,
+        visual: { kind: "flag", flag: c.flag }, options: shuffle([c.name, ...distractors(c, "name", 3, [0, 0, 1, 3, 3][lv])]), correct: c.name,
         answers: [c.name, ...(ALT[c.name] || [])], reveal: `Hauptstadt: ${c.capital}`, revealImg: "cap:" + c.capital, revealCaption: `${c.capital}, ${c.name}`,
       };
     }
@@ -312,7 +336,7 @@
     const qc = catInfo(item.cat);
     const opts = q[7] || {};
     return {
-      key: item.key, type: typing && !opts.mc ? "type" : "mc", meta: `${qc.icon} ${qc.name}`, prompt: q[0], cat: qc.id,
+      key: item.key, type: typing && !opts.mc ? "type" : "mc", meta: `${qc.icon} ${qc.name}${levelTag}`, prompt: q[0], cat: qc.id,
       options: shuffle(q.slice(1, 5)), correct: q[1], answers: [q[1], ...(opts.alt || [])], img: q[6] || null,
     };
   }
@@ -588,7 +612,7 @@
     if (!pool.length) return 0;
     return pool.reduce((a, it) => a + Math.min(1, (store.stats[it.key]?.box || 0) / 3), 0) / pool.length;
   }
-  const catMastery = (c) => Math.round(mastery({ cat: c.id, region: "WORLD", diff: "hard" }) * 100);
+  const catMastery = (c) => Math.round(mastery({ cat: c.id, region: "WORLD", diff: "medium" }) * 100);
   const groupMastery = (g) => {
     const m = g.categories.map((c) => catMastery(c));
     return Math.round(m.reduce((a, b) => a + b, 0) / m.length);
@@ -642,7 +666,7 @@
       <button class="wide-card" data-tab-go="stats"><span class="wc-icon">📈</span><span><b>Fortschritt</b><small>Deine Weltkarte und Statistiken</small></span><span>→</span></button>
     `, { tab: "start" });
     on("[data-group]", "click", (e) => openGroup(e.currentTarget.dataset.group));
-    on("#mix", "click", () => startSolo({ cat: "mix", diff: "hard", answer: store.last.mixAnswer || "mc" }, 10));
+    on("#mix", "click", () => startSolo({ cat: "mix", diff: "medium", answer: store.last.mixAnswer || "mc" }, 10));
     on("#weak", "click", startWeak);
     on("[data-tab-go]", "click", (e) => TABS[e.currentTarget.dataset.tabGo]());
     on("#goal", "click", () => toast(`Heute ${done} von ${DAILY_GOAL} Fragen beantwortet${done >= DAILY_GOAL ? " – Tagesziel geschafft! 🎉" : ""}`));
@@ -653,13 +677,13 @@
   function startWeak() {
     const items = [];
     for (const c of ALL_CATS) {
-      const pool = buildPool({ cat: c.id, region: "WORLD", diff: "hard" });
+      const pool = buildPool({ cat: c.id, region: "WORLD", diff: "medium" });
       for (const it of pool) if (store.stats[it.key]?.box === 0) items.push({ it, c });
     }
     const picked = shuffle(items).slice(0, 10);
     if (!picked.length) return toast("Keine Fehler offen – stark!");
-    const qs = picked.map(({ it, c }) => makeQuestion(it, { cat: c.id, region: it.kind === "map" ? "WORLD" : "WORLD", diff: "hard", answer: "mc" }));
-    runSolo({ cat: "mix", diff: "hard", answer: "mc", label: "Fehler wiederholen" }, qs);
+    const qs = picked.map(({ it, c }) => makeQuestion(it, { cat: c.id, region: "WORLD", diff: "medium", answer: "mc" }));
+    runSolo({ cat: "mix", diff: "medium", answer: "mc", label: "Fehler wiederholen" }, qs);
   }
 
   // ================= Bereich (Reiter) =================
@@ -710,11 +734,14 @@
     const last = store.last[cat] || {};
     const geo = isGeo(cat);
     const s = { cat, region: geo ? last.region || "EU" : "WORLD", diff: last.diff || "easy", n: last.n || 10, answer: last.answer || (cat === "map" ? "tap" : "mc") };
-    const diffHint = {
-      map: "Leicht: mit Flagge und Punkten für kleine Länder · Schwer: nur der Name",
-      capital: "Leicht: Ländername wird angezeigt · Schwer: nur der Umriss des Landes",
-      flag: "Leicht: Antworten aus aller Welt · Schwer: ähnliche Länder aus derselben Region",
-    }[cat] || "Leicht: einfache Fragen · Schwer: alle Fragen inklusive kniffliger";
+    const HINTS = {
+      map: { easy: "Mit Flagge als Hilfe und Punkten für kleine Länder.", medium: "Nur der Ländername, Punkte für kleine Länder bleiben.", hard: "Nur der Name – Punkte gibt es nur noch für winzige Staaten.", extreme: "Wie Schwer, dazu 20 Sekunden Zeitlimit und doppelte Punkte." },
+      capital: { easy: "Ländername wird angezeigt, Antworten aus aller Welt.", medium: "Ländername wird angezeigt, Antworten aus derselben Region.", hard: "Nur der Umriss des Landes, Antworten aus derselben Region.", extreme: "Nur der Umriss, 12 Sekunden Zeitlimit und doppelte Punkte." },
+      flag: { easy: "Antworten aus aller Welt.", medium: "Antworten aus aller Welt, eine aus derselben Region.", hard: "Alle Antworten aus derselben Region – ähnliche Flaggen.", extreme: "Wie Schwer, dazu 12 Sekunden Zeitlimit und doppelte Punkte." },
+    };
+    const QHINT = { easy: "Nur einfache Fragen.", medium: "Alle Fragen gemischt – einfache und knifflige.", hard: "Nur knifflige Fragen.", extreme: "Nur knifflige Fragen mit Zeitlimit (12 Sek., beim Eintippen 20 Sek.) und doppelten Punkten." };
+    const hintFor = (d) => (HINTS[cat] || QHINT)[d] || "";
+    if (!levelOf(s.diff)) s.diff = "easy";
     const answerOpts = cat === "map"
       ? [{ v: "tap", l: "👆 Auf Karte tippen" }, { v: "type", l: "⌨️ Namen eintippen" }]
       : [{ v: "mc", l: "🔘 Multiple Choice" }, { v: "type", l: "⌨️ Eintippen" }];
@@ -730,7 +757,7 @@
       <div class="setup-body">
         ${geo ? `<div class="field"><label class="lbl">Region</label>${chips("region", window.REGIONS.map((r) => ({ v: r.id, l: `${r.icon} ${r.name}` })), s.region)}</div>` : ""}
         <div class="field"><label class="lbl">Antworten</label>${chips("answer", answerOpts, s.answer)}</div>
-        <div class="field"><label class="lbl">Schwierigkeit</label>${chips("diff", [{ v: "easy", l: "🙂 Leicht" }, { v: "hard", l: "🔥 Schwer" }], s.diff)}<p class="hint">${diffHint}</p></div>
+        <div class="field"><label class="lbl">Schwierigkeit</label>${chips("diff", DIFFS, s.diff)}<p class="hint" id="diffhint">${hintFor(s.diff)}</p></div>
         <div class="field"><label class="lbl">Anzahl Fragen</label>${chips("n", [{ v: 5, l: "5" }, { v: 10, l: "10" }, { v: 20, l: "20" }], s.n)}</div>
         <p class="hint" id="poolinfo"></p>
         <div class="start-buttons">
@@ -742,6 +769,8 @@
     const backTarget = backTo || c.group || "start";
     bindBack({ [backTarget]: () => (backTarget === "duelle" ? pickDuelTopic() : groupInfo(backTarget) ? openGroup(backTarget) : home()) });
     const info = () => {
+      const dh = app.querySelector("#diffhint");
+      if (dh) dh.textContent = hintFor(s.diff);
       const pool = buildPool(s);
       app.querySelector("#poolinfo").textContent = `${pool.length} Fragen in dieser Auswahl · ${Math.round(mastery(s) * 100)}% davon sitzen schon.`;
     };
@@ -916,13 +945,15 @@
           <div class="score-pill">⭐ ${st.score}${st.streak >= 3 ? ` · 🔥${st.streak}` : ""}</div></div>
         <div class="qhost game"></div></div>`);
       on("#quit", "click", () => askConfirm("Runde beenden?", "Beenden", () => backToSetup(settings)));
+      const extreme = levelOf(settings.diff) === 4;
       renderQuestion(app.querySelector(".qhost"), q, {
         autoNext: true,
+        timeLimit: extreme ? extremeLimit(q) : 0,
         nextLabel: st.i + 1 >= questions.length ? "Ergebnis" : "Weiter",
         onAnswer: ({ correct }) => {
           record(q.key, correct);
           st.results.push({ q, correct });
-          if (correct) { st.streak++; st.score += 10 + Math.min(10, (st.streak - 1) * 2) + (q.type === "type" || q.type === "name" ? 5 : 0); } else st.streak = 0;
+          if (correct) { st.streak++; st.score += (10 + Math.min(10, (st.streak - 1) * 2) + (q.type === "type" || q.type === "name" ? 5 : 0)) * (extreme ? 2 : 1); } else st.streak = 0;
           app.querySelector(".score-pill").textContent = `⭐ ${st.score}${st.streak >= 3 ? ` · 🔥${st.streak}` : ""}`;
           app.querySelector(".progress > div").style.width = `${((st.i + 1) / questions.length) * 100}%`;
         },
@@ -1155,7 +1186,7 @@
   }
   function duelLabel(settings, n) {
     const c = settings.cat === "mix" ? MIX : groupInfo(settings.cat) ? { icon: groupInfo(settings.cat).icon, name: groupInfo(settings.cat).name } : catInfo(settings.cat);
-    return `${c.icon} ${c.name}${isGeo(settings.cat) ? " · " + regionInfo(settings.region).name : ""} · ${n} Fragen`;
+    return `${c.icon} ${c.name}${isGeo(settings.cat) ? " · " + regionInfo(settings.region).name : ""} · ${DIFF_NAME[settings.diff] || "Mittel"} · ${n} Fragen`;
   }
 
   // Zentrale Duell-Ansicht: verbindet, liest den Spielstand und zeigt je nach Stand
@@ -1557,7 +1588,7 @@
     }));
   }
   function statRow(c) {
-    const pool = buildPool({ cat: c.id, region: "WORLD", diff: "hard" });
+    const pool = buildPool({ cat: c.id, region: "WORLD", diff: "medium" });
     let good = 0, bad = 0, seen = 0;
     for (const it of pool) {
       const s = store.stats[it.key];
