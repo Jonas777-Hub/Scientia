@@ -1,8 +1,8 @@
 /* Offline-Cache für Scientia. Bei Änderungen VERSION erhöhen. */
-const VERSION = "scientia-v1";
+const VERSION = "scientia-v2";
 const FILES = [
   "./", "index.html", "css/style.css", "js/app.js", "js/data-countries.js", "js/data-quiz.js",
-  "data/world.js", "lib/d3.min.js", "lib/topojson-client.min.js", "lib/peerjs.min.js",
+  "js/data-images.js", "data/world.js", "lib/d3.min.js", "lib/topojson-client.min.js", "lib/mqtt.min.js",
   "manifest.webmanifest", "icons/icon.svg", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png",
 ];
 self.addEventListener("install", (e) => {
