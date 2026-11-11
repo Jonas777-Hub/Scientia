@@ -34,6 +34,9 @@
   store.days ||= {};
   store.duels ||= [];
   store.uid ||= randId(12);
+  // Duell-Fortschritt wird getrennt vom Lern-Fortschritt geführt.
+  store.duelStats ||= { a: 0, r: 0, cats: {} };
+  store.localDuels ||= [];
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch { /* privater Modus */ }
   }
@@ -46,6 +49,18 @@
     const s = store.stats[key];
     return s ? BOX_WEIGHT[Math.min(s.box, 5)] : UNSEEN_WEIGHT;
   };
+  // Antwort im Duell: zählt nur für die Duell-Statistik, nicht fürs Lernsystem.
+  function recordDuel(cat, correct) {
+    const d = store.duelStats;
+    d.a++;
+    if (correct) d.r++;
+    const c = (d.cats[cat || "mix"] ||= { a: 0, r: 0 });
+    c.a++;
+    if (correct) c.r++;
+    store.days[today()] = (store.days[today()] || 0) + 1;
+    save();
+  }
+  // Antwort beim Üben: steuert das Lernsystem (Leitner-Boxen).
   function record(key, correct) {
     const s = store.stats[key] || (store.stats[key] = { c: 0, w: 0, box: 0 });
     if (correct) { s.c++; s.box = Math.min(5, s.box + 1); } else { s.w++; s.box = 0; }
@@ -210,12 +225,15 @@
       { id: "flag", name: "Flaggen", icon: "🚩", color: "#e5484d", cover: "Fahne", desc: "Welches Land gehört zur Flagge?" },
     ],
   };
+  const GEO_MODE_IDS = new Set(GEO_GROUP.categories.map((c) => c.id));
+  const GEO_MODES = GEO_GROUP.categories.slice();
+  GEO_GROUP.categories.push(...(window.GEO_QUIZ_CATEGORIES || []));
   GEO_GROUP.categories.forEach((c) => (c.group = "geografie"));
   const GROUPS = [GEO_GROUP, ...window.QUIZ_GROUPS];
   const QUIZ = window.QUIZ_CATEGORIES;
   const MIX = { id: "mix", name: "Tagesmix", icon: "🎲", color: "#7c5cff", group: "start", cover: "Bibliothek" };
-  const ALL_CATS = [...GEO_GROUP.categories, ...QUIZ];
-  const isGeo = (cat) => GEO_GROUP.categories.some((g) => g.id === cat);
+  const ALL_CATS = [...GEO_MODES, ...QUIZ];
+  const isGeo = (cat) => GEO_MODE_IDS.has(cat);
   const catInfo = (id) => ALL_CATS.find((c) => c.id === id) || MIX;
   const groupInfo = (id) => GROUPS.find((g) => g.id === id);
   const regionInfo = (id) => window.REGIONS.find((r) => r.id === id) || window.REGIONS[0];
@@ -994,7 +1012,7 @@
       renderQuestion(app.querySelector(".qhost"), q, {
         timeLimit: limit, nextLabel: i + 1 >= total ? "Ergebnis" : "Weitergeben",
         onAnswer: ({ correct, ms }) => {
-          record(q.key, correct);
+          recordDuel(q.cat || settings.cat, correct);
           players[who].score += pointsFor(correct, ms, limit);
           if (correct) players[who].right++;
           app.querySelector(".versus").outerHTML = bar(who);
@@ -1006,6 +1024,8 @@
       const [a, b] = players;
       const winner = a.score === b.score ? null : a.score > b.score ? a : b;
       store.xp += Math.round((a.score + b.score) / 20);
+      store.localDuels.unshift({ t: Date.now(), names: [a.name, b.name], scores: [a.score, b.score], label: duelLabel(settings, per) });
+      store.localDuels = store.localDuels.slice(0, 30);
       save();
       render(`<div class="result"><div class="big-emoji">${winner ? "🏆" : "🤝"}</div>
         <h2>${winner ? `${esc(winner.name)} gewinnt!` : "Unentschieden!"}</h2></div>
@@ -1284,7 +1304,7 @@
         renderQuestion(app.querySelector(".qhost"), q, {
           timeLimit: limit, autoNext: true, nextLabel: st.i + 1 >= qs.length ? "Fertig" : "Weiter",
           onAnswer: ({ correct, ms }) => {
-            if (q.key) record(q.key, correct);
+            recordDuel(q.cat || D.game.settings.cat, correct);
             st.score += pointsFor(correct, ms, limit);
             if (correct) st.right++;
             const p = { id: D.me, name: store.name, i: st.i + 1, score: st.score, right: st.right, done: false, j: myJoin(), t: Date.now() };
@@ -1427,23 +1447,35 @@
   }
 
   // ================= Fortschritt =================
-  function stats() {
+  // Zwei getrennte Bereiche: Lernfortschritt beim Üben und Bilanz in Duellen.
+  function stats(view = store.last.statsView || "solo") {
+    store.last.statsView = view;
+    save();
+    const seg = `<div class="segmented" role="tablist">
+        <button role="tab" data-view="solo" aria-selected="${view === "solo"}">🎯 Üben</button>
+        <button role="tab" data-view="duel" aria-selected="${view === "duel"}">⚔️ Duelle</button></div>`;
+    if (view === "duel") return duelStatsView(seg);
     const s = { region: store.last.statsRegion || "WORLD" };
     const total = Object.values(store.stats);
     const sure = total.filter((x) => x.box >= 3).length;
+    const answered = total.reduce((a, x) => a + x.c + x.w, 0);
+    const right = total.reduce((a, x) => a + x.c, 0);
     render(`<div class="topbar">${backBtn("start")}<h2>Fortschritt</h2></div>
+      ${seg}
+      <p class="hint">Hier zählen nur deine Übungsrunden. Duelle verändern dein Lernsystem nicht.</p>
       <div class="stat-tiles">
         <div class="stat-tile"><b>${total.length}</b><span>Fragen gesehen</span></div>
         <div class="stat-tile"><b>${sure}</b><span>sitzen sicher</span></div>
-        <div class="stat-tile"><b>${streakDays()}</b><span>${streakDays() === 1 ? "Tag" : "Tage"} in Folge</span></div>
+        <div class="stat-tile"><b>${answered ? Math.round((right / answered) * 100) : 0}%</b><span>richtig beim Üben</span></div>
       </div>
       <div class="section-title">Weltkarte – Länder finden</div>
       ${chips("region", window.REGIONS.map((r) => ({ v: r.id, l: `${r.icon} ${r.name}` })), s.region)}
       <div class="map-wrap stats-map"></div>
       <div class="map-legend"><span><i style="background:var(--good)"></i>sitzt</span><span><i style="background:var(--warn)"></i>wird besser</span><span><i style="background:var(--bad)"></i>üben</span><span><i style="background:var(--land-active)"></i>noch nicht gefragt</span></div>
       ${GROUPS.map((g) => `<div class="section-title">${g.icon} ${esc(g.name)}</div>${g.categories.map((c) => statRow(c)).join("")}`).join("")}
-      <div class="btn-row"><button class="ghost-btn danger-text" id="reset">Fortschritt zurücksetzen</button></div>`, { tab: "start" });
+      <div class="btn-row"><button class="ghost-btn danger-text" id="reset">Lernfortschritt zurücksetzen</button></div>`, { tab: "start" });
     bindBack();
+    on("[data-view]", "click", (e) => stats(e.currentTarget.dataset.view));
     const color = (topo) => {
       const c = byTopo.get(topo);
       const st = c && store.stats[`map:${c.iso2}`];
@@ -1463,12 +1495,65 @@
     bindChips(s);
     drawMap();
     cleanup.push(() => map?.destroy());
-    on("#reset", "click", () => askConfirm("Wirklich den gesamten Lernfortschritt und alle XP löschen?", "Löschen", () => {
+    on("#reset", "click", () => askConfirm("Wirklich deinen gesamten Lernfortschritt beim Üben löschen? Deine Duelle bleiben erhalten.", "Löschen", () => {
       store.stats = {};
-      store.xp = 0;
-      store.days = {};
       save();
-      stats();
+      stats("solo");
+    }));
+  }
+
+  function duelStatsView(seg) {
+    const fin = store.duels.filter((d) => d.finished && d.won !== undefined);
+    const won = fin.filter((d) => d.won === 1).length;
+    const lost = fin.filter((d) => d.won === -1).length;
+    const tie = fin.filter((d) => d.won === 0).length;
+    const ds = store.duelStats;
+    // Bilanz je Gegner
+    const opp = {};
+    for (const d of fin) {
+      const k = d.opp || "Unbekannt";
+      const o = (opp[k] ||= { n: 0, w: 0, l: 0, t: 0 });
+      o.n++;
+      if (d.won === 1) o.w++; else if (d.won === -1) o.l++; else o.t++;
+    }
+    const oppRows = Object.entries(opp).sort((a, b) => b[1].n - a[1].n);
+    const catRows = Object.entries(ds.cats).filter(([, v]) => v.a).sort((a, b) => b[1].a - a[1].a);
+    const catName = (id) => { const c = id === "mix" ? MIX : groupInfo(id) || catInfo(id); return `${c.icon} ${c.name}`; };
+    render(`<div class="topbar">${backBtn("start")}<h2>Fortschritt</h2></div>
+      ${seg}
+      <p class="hint">Hier zählen nur Duelle gegen Freunde – getrennt von deinen Übungsrunden.</p>
+      <div class="stat-tiles four">
+        <div class="stat-tile"><b>${fin.length}</b><span>Online-Duelle</span></div>
+        <div class="stat-tile good"><b>${won}</b><span>Siege</span></div>
+        <div class="stat-tile bad"><b>${lost}</b><span>Niederlagen</span></div>
+        <div class="stat-tile"><b>${tie}</b><span>Unentschieden</span></div>
+      </div>
+      <div class="stat-row"><span class="emoji">🎯</span><div class="info"><b>Trefferquote in Duellen</b>
+        <div class="muted small">${ds.r} von ${ds.a} Fragen richtig (online und am selben Handy)</div>
+        <div class="bar"><div class="g" style="width:${ds.a ? (ds.r / ds.a) * 100 : 0}%"></div></div></div>
+        <span class="num">${ds.a ? Math.round((ds.r / ds.a) * 100) : 0}%</span></div>
+      <div class="section-title">Bilanz gegen deine Freunde</div>
+      ${oppRows.length ? oppRows.map(([name, o]) => `<div class="stat-row"><span class="dr-vs">${esc(name.slice(0, 1).toUpperCase())}</span><div class="info"><b>${esc(name)}</b>
+        <div class="muted small">${o.n} ${o.n === 1 ? "Duell" : "Duelle"} · ${o.w} gewonnen · ${o.l} verloren${o.t ? ` · ${o.t} unentschieden` : ""}</div>
+        <div class="bar"><div class="g" style="width:${(o.w / o.n) * 100}%"></div><div class="r" style="width:${(o.l / o.n) * 100}%"></div></div></div>
+        <span class="num">${o.w}:${o.l}</span></div>`).join("") : `<div class="empty"><span>⚔️</span><p>Noch keine abgeschlossenen Online-Duelle.</p></div>`}
+      ${catRows.length ? `<div class="section-title">Trefferquote nach Thema (Duelle)</div>${catRows.map(([id, v]) => `<div class="stat-row"><div class="info"><b>${esc(catName(id))}</b>
+        <div class="muted small">${v.r} von ${v.a} richtig</div><div class="bar"><div class="g" style="width:${(v.r / v.a) * 100}%"></div></div></div>
+        <span class="num">${Math.round((v.r / v.a) * 100)}%</span></div>`).join("")}` : ""}
+      ${store.localDuels.length ? `<div class="section-title">Zu zweit am selben Handy</div>${store.localDuels.slice(0, 10).map((m) => {
+        const w = m.scores[0] === m.scores[1] ? "🤝" : "🏆 " + esc(m.scores[0] > m.scores[1] ? m.names[0] : m.names[1]);
+        return `<div class="stat-row"><span class="emoji">📱</span><div class="info"><b>${esc(m.names[0])} ${m.scores[0]} : ${m.scores[1]} ${esc(m.names[1])}</b>
+          <div class="muted small">${esc(m.label || "")} · ${new Date(m.t).toLocaleDateString("de-DE")}</div></div><span class="num">${w}</span></div>`;
+      }).join("")}` : ""}
+      <div class="btn-row"><button class="ghost-btn danger-text" id="reset-duel">Duell-Statistik zurücksetzen</button></div>`, { tab: "start" });
+    bindBack();
+    on("[data-view]", "click", (e) => stats(e.currentTarget.dataset.view));
+    on("#reset-duel", "click", () => askConfirm("Duell-Statistik und Duell-Liste löschen? Dein Lernfortschritt bleibt erhalten.", "Löschen", () => {
+      store.duelStats = { a: 0, r: 0, cats: {} };
+      store.duels = [];
+      store.localDuels = [];
+      save();
+      stats("duel");
     }));
   }
   function statRow(c) {
@@ -1494,7 +1579,7 @@
     geschichte: () => openGroup("geschichte"),
     wissen: () => openGroup("wissen"),
     duelle: duels,
-    stats,
+    stats: () => stats(),
   };
 
   // ================= Start der App =================

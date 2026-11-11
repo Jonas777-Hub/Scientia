@@ -17,10 +17,14 @@ Unten gibt es fünf Reiter: **Start**, **Geografie**, **Geschichte**, **Wissen**
 - 🏙️ **Hauptstädte** – *Leicht*: mit Ländername. *Schwer*: nur der Umriss. Nach der Antwort ein Foto der Stadt.
 - 🚩 **Flaggen** – Welches Land gehört zur Flagge?
 
+- 🧭 **Erdkunde-Wissen** – Kontinente, Städte, Flüsse, Berge, Inseln, Landschaften, Sprachen.
+
 **📜 Geschichte** – Deutsche Geschichte (Kaiserreich, Weimar, NS-Zeit, Teilung, Wiedervereinigung),
 Weltkriege, Antike, Mittelalter, Neuzeit & Moderne.
 
 **🧠 Wissen** – Allgemeinwissen, Wissenschaft, Natur & Tiere, Sport, Kunst & Kultur, Technik.
+
+Jede Kategorie hat **mindestens 500 Fragen** (insgesamt über 6.200). Prüfen mit `node tools/check_questions.js`.
 
 Jede Wissensfrage hat ein passendes **Bild** (Hauptbild des Wikipedia-Artikels zum Thema), das auch
 unscharf als Hintergrund erscheint.
@@ -29,7 +33,9 @@ unscharf als Hintergrund erscheint.
 Punkte, Nachnamen („Adenauer“) und bekannte Varianten („USA“, „Tokyo“) erlaubt.
 
 **Lernsystem** – Leitner-System: Was du falsch hattest, kommt deutlich öfter dran, Sicheres seltener.
-Unter „Fortschritt“ siehst du auf der Weltkarte, welche Länder schon sitzen.
+Unter „Fortschritt“ gibt es zwei getrennte Bereiche: **Üben** (Lernstand, Weltkarte) und
+**Duelle** (Siege/Niederlagen, Bilanz je Freund, Trefferquote je Thema). Antworten in Duellen
+verändern das Lernsystem nicht.
 
 **⚔️ Duelle**
 - **Freund herausfordern**: Link per WhatsApp & Co. schicken. Beide bekommen dieselben Fragen,
@@ -73,7 +79,9 @@ Nur Fotos/Gemälde (JPG) werden gezeigt, Karten und Wappen nicht. Optional kann
 
 ## Neue Fragen hinzufügen
 
-In `js/data-quiz.js` – je Frage:
+Die Fragen stehen in `js/data-quiz.js` (Kategorien) und `js/q/*.js` (je Kategorie, teils aus
+Faktentabellen erzeugt mit `js/q/_gen.js`). Neue Dateien in `js/q/` auch in `index.html` und `sw.js`
+eintragen. Format je Frage:
 
 ```js
 ["Frage", "richtige Antwort", "falsch 1", "falsch 2", "falsch 3", 1, "Wikipedia-Artikel fürs Bild", { alt: ["andere Schreibweise"] }]
@@ -92,7 +100,9 @@ Länder, Hauptstädte und alternative Schreibweisen stehen in `js/data-countries
 | `index.html` | Einstieg, Reiterleiste |
 | `css/style.css` | Design (hell/dunkel automatisch) |
 | `js/app.js` | Spiellogik, Lernsystem, Karte, Bilder, Duelle |
-| `js/data-quiz.js` | Wissens- und Geschichtsfragen |
+| `js/data-quiz.js` | Kategorien und Startfragen |
+| `js/q/` | Fragenkataloge je Kategorie (Tabellen + handgeschriebene Fragen) |
+| `tools/check_questions.js` | Prüft Anzahl und Qualität der Fragen |
 | `js/data-countries.js` | Länder, Hauptstädte, Regionen, Flaggen, Schreibweisen |
 | `js/data-images.js` | optionale, vorab ermittelte Bildadressen |
 | `data/world.js` | Weltkarte (Natural Earth über world-atlas) |

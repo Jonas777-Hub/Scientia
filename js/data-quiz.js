@@ -358,8 +358,13 @@ window.QUIZ_GROUPS = [
   },
 ];
 
+// Wissens-Kategorie im Geografie-Reiter (die Karten-, Hauptstadt- und Flaggenspiele erzeugt die App selbst)
+window.GEO_QUIZ_CATEGORIES = [
+  { id: "erdkunde", name: "Erdkunde-Wissen", icon: "🧭", color: "#1f9e8f", cover: "Weltkarte", desc: "Flüsse, Berge, Städte, Inseln und mehr", group: "geografie", questions: [] },
+];
+
 // Alle Kategorien als flache Liste
-window.QUIZ_CATEGORIES = window.QUIZ_GROUPS.flatMap((g) => g.categories.map((c) => Object.assign(c, { group: g.id })));
+window.QUIZ_CATEGORIES = [...window.QUIZ_GROUPS.flatMap((g) => g.categories.map((c) => Object.assign(c, { group: g.id }))), ...window.GEO_QUIZ_CATEGORIES];
 
 // Zusätzliche Bilder für Titelkarten (Geografie-Bereich)
 window.EXTRA_IMAGES = ["Blue Marble", "Globus", "Paris", "Fahne", "Weltkarte"];

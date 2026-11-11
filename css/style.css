@@ -389,3 +389,13 @@ b.inline { display: inline !important; color: inherit !important; }
   .area-cards { grid-template-columns: 1fr 1fr 1fr; }
   .area-card { min-height: 170px; }
 }
+
+/* Fortschritt: Umschalter Üben / Duelle */
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--card); border-radius: 14px; box-shadow: var(--shadow); margin-bottom: 8px; }
+.segmented button { padding: 10px; border-radius: 10px; font-weight: 800; text-align: center; color: var(--muted); }
+.segmented button[aria-selected="true"] { background: linear-gradient(135deg, var(--accent), #a24dff); color: #fff; }
+.stat-tiles.four { grid-template-columns: repeat(4, 1fr); }
+.stat-tiles.four .stat-tile b { font-size: 22px; }
+.stat-tile.good b { color: var(--good); }
+.stat-tile.bad b { color: var(--bad); }
+.stat-row .dr-vs { width: 36px; height: 36px; font-size: 15px; }
