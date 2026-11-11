@@ -1,8 +1,44 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6c4cf5"/><stop offset="1" stop-color="#ff7ab8"/></linearGradient></defs>
-  <rect width="512" height="512" rx="112" fill="url(#g)"/>
-  <circle cx="256" cy="256" r="150" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="14"/>
-  <ellipse cx="256" cy="256" rx="70" ry="150" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="14"/>
-  <line x1="106" y1="256" x2="406" y2="256" stroke="#fff" stroke-opacity=".25" stroke-width="14"/>
-  <text x="256" y="335" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-weight="800" font-size="240" fill="#fff">S</text>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#3b1fd6"/><stop offset=".55" stop-color="#8a3df0"/><stop offset="1" stop-color="#ff5fa2"/>
+  </linearGradient>
+  <radialGradient id="glow"><stop offset="0" stop-color="#fff3b0" stop-opacity=".85"/><stop offset=".5" stop-color="#ffd36e" stop-opacity=".35"/><stop offset="1" stop-color="#ffd36e" stop-opacity="0"/></radialGradient>
+  <radialGradient id="bulb" cx=".4" cy=".35"><stop offset="0" stop-color="#fffbe6"/><stop offset=".55" stop-color="#ffe27a"/><stop offset="1" stop-color="#ffb938"/></radialGradient>
+  <radialGradient id="vign" cx=".5" cy=".42" r=".75"><stop offset=".55" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#0a0520" stop-opacity=".55"/></radialGradient>
+</defs>
+  <rect width="1024" height="1024" rx="224" fill="url(#bg)"/><circle cx="502" cy="574" r="1.3" fill="#fff" opacity="0.40"/><circle cx="454" cy="519" r="1.2" fill="#fff" opacity="0.78"/><circle cx="604" cy="421" r="1.9" fill="#fff" opacity="0.72"/><circle cx="673" cy="78" r="2.5" fill="#fff" opacity="0.39"/><circle cx="688" cy="162" r="2.7" fill="#fff" opacity="0.54"/><circle cx="180" cy="51" r="3.8" fill="#fff" opacity="0.83"/><circle cx="124" cy="455" r="3.9" fill="#fff" opacity="0.36"/><circle cx="429" cy="564" r="3.0" fill="#fff" opacity="0.42"/><circle cx="174" cy="1009" r="2.3" fill="#fff" opacity="0.39"/><circle cx="560" cy="338" r="1.5" fill="#fff" opacity="0.71"/><circle cx="360" cy="358" r="1.2" fill="#fff" opacity="0.81"/><circle cx="244" cy="905" r="2.4" fill="#fff" opacity="0.39"/><circle cx="617" cy="411" r="3.3" fill="#fff" opacity="0.64"/><circle cx="139" cy="229" r="2.4" fill="#fff" opacity="0.30"/><circle cx="49" cy="422" r="3.0" fill="#fff" opacity="0.64"/><circle cx="978" cy="333" r="2.3" fill="#fff" opacity="0.55"/><circle cx="449" cy="859" r="2.4" fill="#fff" opacity="0.51"/><circle cx="270" cy="242" r="3.2" fill="#fff" opacity="0.33"/><circle cx="277" cy="785" r="3.6" fill="#fff" opacity="0.83"/><circle cx="949" cy="881" r="3.2" fill="#fff" opacity="0.63"/><circle cx="568" cy="25" r="2.0" fill="#fff" opacity="0.46"/><circle cx="220" cy="403" r="3.1" fill="#fff" opacity="0.69"/><circle cx="273" cy="979" r="1.0" fill="#fff" opacity="0.47"/><circle cx="600" cy="452" r="1.3" fill="#fff" opacity="0.84"/><circle cx="467" cy="893" r="2.8" fill="#fff" opacity="0.53"/><circle cx="128" cy="812" r="3.7" fill="#fff" opacity="0.41"/>
+  
+<g transform="translate(512,470) scale(1.55)">
+  <!-- Leuchten -->
+  <circle cx="0" cy="-70" r="150" fill="url(#glow)"/>
+  <!-- Strahlen -->
+  <g stroke="#ffe8a3" stroke-width="10" stroke-linecap="round" opacity=".9">
+    <line x1="0" y1="-215" x2="0" y2="-245"/>
+    <line x1="-95" y1="-178" x2="-115" y2="-200"/>
+    <line x1="95" y1="-178" x2="115" y2="-200"/>
+    <line x1="-135" y1="-95" x2="-165" y2="-100"/>
+    <line x1="135" y1="-95" x2="165" y2="-100"/>
+  </g>
+  <!-- Glühbirne -->
+  <path d="M0,-190 C-62,-190 -95,-145 -95,-100 C-95,-60 -70,-38 -52,-15 C-42,-2 -40,10 -40,22 L40,22 C40,10 42,-2 52,-15 C70,-38 95,-60 95,-100 C95,-145 62,-190 0,-190 Z" fill="url(#bulb)"/>
+  <path d="M-25,-20 C-18,-60 -38,-80 -22,-100 M25,-20 C18,-60 38,-80 22,-100 M-22,-100 C-10,-112 10,-112 22,-100" fill="none" stroke="#fff6d6" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+  <rect x="-40" y="24" width="80" height="16" rx="7" fill="#e9e4ff"/>
+  <rect x="-36" y="44" width="72" height="14" rx="7" fill="#cfc6ff"/>
+  <path d="M-22,60 L22,60 L12,74 L-12,74 Z" fill="#b7aaf5"/>
+  <!-- Buch -->
+  <g transform="translate(0,150)">
+    <path d="M0,-40 C-55,-72 -130,-72 -190,-50 L-190,60 C-130,38 -55,38 0,70 Z" fill="#ffffff"/>
+    <path d="M0,-40 C55,-72 130,-72 190,-50 L190,60 C130,38 55,38 0,70 Z" fill="#f1edff"/>
+    <path d="M0,-40 L0,70" stroke="#c9bdf7" stroke-width="5"/>
+    <g stroke="#b4a6ee" stroke-width="7" stroke-linecap="round">
+      <path d="M-160,-30 C-115,-45 -70,-45 -30,-28" fill="none"/>
+      <path d="M-160,-5 C-115,-20 -70,-20 -30,-3" fill="none"/>
+      <path d="M-160,20 C-115,5 -70,5 -30,22" fill="none"/>
+      <path d="M30,-28 C70,-45 115,-45 160,-30" fill="none"/>
+      <path d="M30,-3 C70,-20 115,-20 160,-5" fill="none"/>
+      <path d="M30,22 C70,5 115,5 160,20" fill="none"/>
+    </g>
+    <path d="M-200,62 C-135,40 -55,42 0,76 C55,42 135,40 200,62 L200,78 C135,56 55,58 0,92 C-55,58 -135,56 -200,78 Z" fill="#8b6dff"/>
+  </g>
+</g></svg>
