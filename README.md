@@ -36,6 +36,9 @@ Punkte, Nachnamen („Adenauer“) und bekannte Varianten („USA“, „Tokyo�
 **Schwer** (nur knifflige Fragen, weniger Hilfen in den Geografie-Spielen) und **Extrem**
 (wie Schwer, dazu Zeitlimit und doppelte Punkte).
 
+**Endlos lernen** – Statt 5, 10 oder 20 Fragen „♾️ Endlos“ wählen: Es kommen so lange neue Fragen,
+bis du mit ✕ beendest. Danach siehst du dein Ergebnis.
+
 **Lernsystem** – Leitner-System: Was du falsch hattest, kommt deutlich öfter dran, Sicheres seltener.
 Unter „Fortschritt“ gibt es zwei getrennte Bereiche: **Üben** (Lernstand, Weltkarte) und
 **Duelle** (Siege/Niederlagen, Bilanz je Freund, Trefferquote je Thema). Antworten in Duellen

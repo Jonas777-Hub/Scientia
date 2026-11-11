@@ -758,7 +758,7 @@
         ${geo ? `<div class="field"><label class="lbl">Region</label>${chips("region", window.REGIONS.map((r) => ({ v: r.id, l: `${r.icon} ${r.name}` })), s.region)}</div>` : ""}
         <div class="field"><label class="lbl">Antworten</label>${chips("answer", answerOpts, s.answer)}</div>
         <div class="field"><label class="lbl">Schwierigkeit</label>${chips("diff", DIFFS, s.diff)}<p class="hint" id="diffhint">${hintFor(s.diff)}</p></div>
-        <div class="field"><label class="lbl">Anzahl Fragen</label>${chips("n", [{ v: 5, l: "5" }, { v: 10, l: "10" }, { v: 20, l: "20" }], s.n)}</div>
+        <div class="field"><label class="lbl">Anzahl Fragen</label>${chips("n", [{ v: 5, l: "5" }, { v: 10, l: "10" }, { v: 20, l: "20" }, { v: 0, l: "♾️ Endlos" }], s.n)}<p class="hint" id="nhint" ${s.n === 0 ? "" : "hidden"}>Lerne, so lange du willst – mit ✕ beendest du und siehst dein Ergebnis. Duelle haben in diesem Fall 10 Fragen.</p></div>
         <p class="hint" id="poolinfo"></p>
         <div class="start-buttons">
           <button class="primary-btn big" id="solo">🎯 Allein üben</button>
@@ -769,6 +769,8 @@
     const backTarget = backTo || c.group || "start";
     bindBack({ [backTarget]: () => (backTarget === "duelle" ? pickDuelTopic() : groupInfo(backTarget) ? openGroup(backTarget) : home()) });
     const info = () => {
+      const nh = app.querySelector("#nhint");
+      if (nh) nh.hidden = s.n !== 0;
       const dh = app.querySelector("#diffhint");
       if (dh) dh.textContent = hintFor(s.diff);
       const pool = buildPool(s);
@@ -780,14 +782,15 @@
     const remember = () => { store.last[cat] = { region: s.region, diff: s.diff, n: s.n, answer: s.answer }; save(); };
     const settings = () => ({ cat: s.cat, region: s.region, diff: s.diff, answer: s.answer });
     on("#solo", "click", () => { remember(); startSolo(settings(), s.n); });
-    on("#friend", "click", () => { remember(); askName(() => createOnlineDuel(settings(), s.n)); });
-    on("#local", "click", () => { remember(); localDuelSetup(settings(), s.n); });
+    on("#friend", "click", () => { remember(); askName(() => createOnlineDuel(settings(), s.n || 10)); });
+    on("#local", "click", () => { remember(); localDuelSetup(settings(), s.n || 10); });
   }
 
   function startSolo(settings, n) {
-    const qs = makeRound(settings, n);
+    const endless = n === 0;
+    const qs = makeRound(settings, endless ? 10 : n);
     if (!qs.length) return toast("Keine Fragen für diese Auswahl.");
-    runSolo(settings, qs);
+    runSolo(endless ? Object.assign({}, settings, { endless: true }) : settings, qs);
   }
 
   // ================= Fragen anzeigen =================
@@ -936,26 +939,45 @@
   function runSolo(settings, questions) {
     const st = { i: 0, score: 0, streak: 0, results: [] };
     ensureImages(questions.flatMap((q) => [q.img, q.revealImg])).then(() => questions.forEach((q) => { preload(q.img); preload(q.revealImg); }));
+    const endless = !!settings.endless;
+    const finishEndless = () => {
+      if (!st.results.length) return backToSetup(settings);
+      soloResult(settings, st.results.map((r) => r.q), st);
+    };
     const step = () => {
-      if (st.i >= questions.length) return soloResult(settings, questions, st);
+      if (st.i >= questions.length) {
+        if (!endless) return soloResult(settings, questions, st);
+        // Endlos: neue Fragen nachladen, kürzlich gestellte möglichst nicht wiederholen
+        const recent = new Set(st.results.slice(-20).map((r) => r.q.key));
+        let more = makeRound(settings, 15).filter((q) => !recent.has(q.key)).slice(0, 10);
+        if (!more.length) more = makeRound(settings, 10);
+        ensureImages(more.flatMap((q) => [q.img, q.revealImg]));
+        questions.push(...more);
+      }
       const q = questions[st.i];
+      const right = st.results.filter((r) => r.correct).length;
       render(`<div class="game">
         <div class="game-top"><button class="icon-btn" id="quit" aria-label="Beenden">✕</button>
-          <div class="progress"><div style="width:${(st.i / questions.length) * 100}%"></div></div>
+          ${endless ? `<div class="endless-pill">♾️ Frage ${st.i + 1} · ✅ ${right}</div>` : `<div class="progress"><div style="width:${(st.i / questions.length) * 100}%"></div></div>`}
           <div class="score-pill">⭐ ${st.score}${st.streak >= 3 ? ` · 🔥${st.streak}` : ""}</div></div>
         <div class="qhost game"></div></div>`);
-      on("#quit", "click", () => askConfirm("Runde beenden?", "Beenden", () => backToSetup(settings)));
+      on("#quit", "click", () => endless
+        ? askConfirm(`Lernen beenden? Du hast ${st.results.length} ${st.results.length === 1 ? "Frage" : "Fragen"} beantwortet.`, "Beenden", finishEndless)
+        : askConfirm("Runde beenden?", "Beenden", () => backToSetup(settings)));
       const extreme = levelOf(settings.diff) === 4;
       renderQuestion(app.querySelector(".qhost"), q, {
         autoNext: true,
         timeLimit: extreme ? extremeLimit(q) : 0,
-        nextLabel: st.i + 1 >= questions.length ? "Ergebnis" : "Weiter",
+        nextLabel: !endless && st.i + 1 >= questions.length ? "Ergebnis" : "Weiter",
         onAnswer: ({ correct }) => {
           record(q.key, correct);
           st.results.push({ q, correct });
           if (correct) { st.streak++; st.score += (10 + Math.min(10, (st.streak - 1) * 2) + (q.type === "type" || q.type === "name" ? 5 : 0)) * (extreme ? 2 : 1); } else st.streak = 0;
           app.querySelector(".score-pill").textContent = `⭐ ${st.score}${st.streak >= 3 ? ` · 🔥${st.streak}` : ""}`;
-          app.querySelector(".progress > div").style.width = `${((st.i + 1) / questions.length) * 100}%`;
+          const bar = app.querySelector(".progress > div");
+          if (bar) bar.style.width = `${((st.i + 1) / questions.length) * 100}%`;
+          const pill = app.querySelector(".endless-pill");
+          if (pill) pill.textContent = `♾️ Frage ${st.i + 1} · ✅ ${st.results.filter((r) => r.correct).length}`;
         },
         onNext: () => { st.i++; step(); },
       });
@@ -995,9 +1017,9 @@
         <button class="${wrong.length ? "secondary-btn" : "primary-btn"}" id="again">Neue Runde</button>
         <button class="ghost-btn" id="menu">Zurück</button>
       </div>`);
-    on("#again", "click", () => runSolo(settings, settings.label ? questions.map((q) => q) : makeRound(settings, questions.length)));
+    on("#again", "click", () => (settings.endless ? startSolo(settings, 0) : runSolo(settings, settings.label ? questions.map((q) => q) : makeRound(settings, questions.length))));
     on("#menu", "click", () => backToSetup(settings));
-    on("#retry-wrong", "click", () => runSolo(settings, shuffle(wrong.map((r) => r.q))));
+    on("#retry-wrong", "click", () => runSolo(Object.assign({}, settings, { endless: false }), shuffle(wrong.map((r) => r.q))));
   }
 
   // ================= 1 gegen 1: am selben Handy =================
