@@ -36,12 +36,14 @@ python3 -m http.server 8000
 # dann http://localhost:8000 öffnen
 ```
 
-### Aufs iPhone bringen
+### Öffentlich machen (GitHub Pages)
 
-Die Dateien müssen über HTTPS erreichbar sein, z. B. über **GitHub Pages**
-(Settings → Pages → Branch wählen; bei privaten Repos braucht das GitHub Pro – oder das Repo öffentlich machen),
-**Netlify** oder **Vercel** (Ordner einfach hochladen). Dann in Safari öffnen →
-Teilen → „Zum Home-Bildschirm“.
+1. Repo öffentlich machen: **Settings → General → ganz unten „Danger Zone“ → Change visibility → Public**
+2. **Settings → Pages → Build and deployment**: Source „Deploy from a branch“, Branch **main**, Ordner **/ (root)** → Save
+3. Nach 1–2 Minuten ist die App erreichbar unter **https://jonas777-hub.github.io/Scientia/**
+
+Auf dem iPhone in Safari öffnen → Teilen → „Zum Home-Bildschirm“. Jede Änderung auf `main`
+wird automatisch neu veröffentlicht.
 
 ## Online-Duelle
 
